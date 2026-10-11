@@ -244,7 +244,10 @@
 
     const fine = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
     const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-    if ((fine && !fine.matches) || (reduce && reduce.matches)) return;
+    if ((fine && !fine.matches) || (reduce && reduce.matches)) {
+      if (window.console && console.info) console.info('[TheoCraft] 当前环境无鼠标悬停或开启了减少动态，LOGO 视差未启用');
+      return;
+    }
 
     const MAX = 16;      // 主层（depth=1）最大位移，SVG 用户单位
     const EASE = 0.09;   // lerp 平滑系数，越小越"飘"
@@ -253,7 +256,10 @@
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(function (txt) {
         const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
-        if (doc.querySelector('parsererror')) return;
+        if (doc.querySelector('parsererror')) {
+          if (window.console && console.warn) console.warn('[TheoCraft] LOGO SVG 解析失败，视差未启用');
+          return;
+        }
         const svg = doc.querySelector('svg');
         if (!svg) return;
 
@@ -263,12 +269,13 @@
         svg.removeAttribute('height');
 
         holder.classList.add('is-live');
-        holder.appendChild(document.importNode(svg, true));
+        const live = document.importNode(svg, true);   // 导入得到"副本"，后续必须操作副本
+        holder.appendChild(live);
         const img = holder.querySelector('img');
         if (img) img.remove();
 
         const layers = Array.prototype.map.call(
-          svg.querySelectorAll('[data-plx]'),
+          live.querySelectorAll('[data-plx]'),
           function (g) {
             return {
               el: g,
@@ -278,7 +285,10 @@
             };
           }
         );
-        if (!layers.length) return;
+        if (!layers.length) {
+          if (window.console && console.warn) console.warn('[TheoCraft] LOGO SVG 内未找到 data-plx 分层，视差未启用');
+          return;
+        }
 
         let raf = null, nx = 0, ny = 0;
 
@@ -307,7 +317,9 @@
         });
         hero.addEventListener('mouseleave', function () { nx = 0; ny = 0; wake(); });
       })
-      .catch(function () { /* 加载失败：保留 <img> 静态显示 */ });
+      .catch(function (err) {
+        if (window.console && console.warn) console.warn('[TheoCraft] LOGO SVG 加载失败，保留静态显示：', err);
+      });
   })();
 
   /* ---- 启动 ---- */
