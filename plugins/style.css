@@ -12,6 +12,32 @@
 /* --------------------------------------------------------------------------
    1. 平台介绍 + 贡献流程
    -------------------------------------------------------------------------- */
+
+/* SVG logo 替换文字标题（分层视差挂载点）
+   · 内联注入后各层由 JS 驱动位移，<img> 为加载失败时的静态兜底
+   · 主题色跟随站内 data-theme 切换（SVG 文件独立预览时用其内部 <style>） */
+.page-hero__title { line-height: 0; }
+.logo-parallax {
+  display: block;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.logo-parallax svg,
+.page-hero__logo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.page-hero__logo { max-width: 100%; }
+.logo-parallax svg { opacity: 0; transition: opacity 0.45s ease; }
+.logo-parallax.is-live svg { opacity: 1; }
+.logo-parallax svg [data-plx] { will-change: transform; }
+
+/* LOGO 内文字的主题色：浅色用深青绿，深色用白 */
+:root,
+[data-theme="light"] { --tcp-fg: #0b4741; }
+[data-theme="dark"] { --tcp-fg: #ffffff; }
+
 .flow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -250,6 +276,7 @@
 }
 @media (max-width: 620px) {
   .waterfall { column-count: 1; }
+  .logo-parallax { max-width: 100%; }
   .plug-result { margin-left: 0; }
   .fab { right: 16px; bottom: 16px; height: 52px; }
   .fab__label { display: none; }

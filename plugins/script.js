@@ -230,6 +230,86 @@
     });
   }
 
+  /* ---- 页头 LOGO 视差 ------------------------------------------------------------------
+     · fetch 加载分层 SVG（TCP-clean.svg 内部按 data-plx 深度 / data-plx-e 指数分了 6 层）
+     · 注入为内联 SVG 后逐层跟随鼠标做非线性偏移：offset = sign(n)·|n|^指数·深度·最大位移
+       —— 视觉中心（TCP 主体字）深度 1.0 / 指数 1.0 跟手最紧；
+       —— 底层元素（半透明青色底影）深度 0.22 / 指数 2.4，几乎不动，形成纵深
+     · rAF + lerp 缓动，鼠标离开页头后各层回弹归位
+     · 触屏 / 减少动态 / fetch 失败（file:// 直开）时保留 <img> 静态显示
+  -------------------------------------------------------------------------------------- */
+  (function initLogoParallax() {
+    const holder = document.getElementById('logoParallax');
+    if (!holder || !window.fetch || !window.DOMParser) return;
+
+    const fine = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+    const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    if ((fine && !fine.matches) || (reduce && reduce.matches)) return;
+
+    const MAX = 16;      // 主层（depth=1）最大位移，SVG 用户单位
+    const EASE = 0.09;   // lerp 平滑系数，越小越"飘"
+
+    fetch('../assets/icon/TCP-clean.svg')
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (txt) {
+        const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) return;
+        const svg = doc.querySelector('svg');
+        if (!svg) return;
+
+        const style = svg.querySelector('style');
+        if (style) style.remove();          // 主题色交由页面 CSS 的 --tcp-fg 控制
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+
+        holder.classList.add('is-live');
+        holder.appendChild(document.importNode(svg, true));
+        const img = holder.querySelector('img');
+        if (img) img.remove();
+
+        const layers = Array.prototype.map.call(
+          svg.querySelectorAll('[data-plx]'),
+          function (g) {
+            return {
+              el: g,
+              depth: parseFloat(g.getAttribute('data-plx')) || 0,
+              exp: parseFloat(g.getAttribute('data-plx-e')) || 1,
+              x: 0, y: 0
+            };
+          }
+        );
+        if (!layers.length) return;
+
+        let raf = null, nx = 0, ny = 0;
+
+        function frame() {
+          let alive = false;
+          for (let i = 0; i < layers.length; i++) {
+            const L = layers[i];
+            const tx = (nx < 0 ? -1 : 1) * Math.pow(Math.abs(nx), L.exp) * L.depth * MAX;
+            const ty = (ny < 0 ? -1 : 1) * Math.pow(Math.abs(ny), L.exp) * L.depth * MAX;
+            L.x += (tx - L.x) * EASE;
+            L.y += (ty - L.y) * EASE;
+            if (Math.abs(tx - L.x) > 0.02 || Math.abs(ty - L.y) > 0.02) alive = true;
+            L.el.style.transform = 'translate(' + L.x.toFixed(2) + 'px,' + L.y.toFixed(2) + 'px)';
+          }
+          raf = alive ? window.requestAnimationFrame(frame) : null;
+        }
+
+        function wake() { if (raf === null) raf = window.requestAnimationFrame(frame); }
+
+        const hero = holder.closest('.page-hero') || document.body;
+        hero.addEventListener('mousemove', function (e) {
+          const r = hero.getBoundingClientRect();
+          nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+          ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+          wake();
+        });
+        hero.addEventListener('mouseleave', function () { nx = 0; ny = 0; wake(); });
+      })
+      .catch(function () { /* 加载失败：保留 <img> 静态显示 */ });
+  })();
+
   /* ---- 启动 ---- */
   renderTree();
   renderList();
