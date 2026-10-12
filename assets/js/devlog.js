@@ -15,19 +15,19 @@ window.TC_DEVLOG = [
   {
     date: '10.11',
     title: '全新官网上线',
-    text: '由网页设计师精心打造 疯潮Fren 的高质网站。站点分为首页、下载、TCP 插件适配平台、Wiki 与关于五个独立页面，首页设计别出心裁，全站支持白天 / 黑夜双主题。',
+    text: '由网页设计师 Dozener 和疯潮Fren 精心打造的高质网站。站点分为首页、下载、TCP 插件适配平台、Wiki 与关于五个独立页面，首页设计别出心裁，全站支持白天 / 黑夜双主题。',
     img: 'assets/misc/dev9.jpg'
   },
   {
     date: '10.10',
     title: '逐个模板建筑建筑进行大批量搭建',
-    text: '由MC城建大师Offical-Bean和原作者Dozener进行一比一等比例逐个复刻，难度不亚于建一座全新的巨型MC都市。',
+    text: '由MC城建大师 Offical-Bean 和原作者 Dozener 进行一比一等比例逐个复刻，难度不亚于建一座全新的巨型MC都市。',
     img: 'assets/misc/dev8.jpg'
   },
   {
     date: '10.6',
     title: 'TC建筑映射新增功能',
-    text: '空缺结构建筑由函数Placeholder解释并生成相应占位立方体，以获取城市大概天际线轮廓。',
+    text: '空缺结构建筑由函数 Placeholder 解释并生成相应占位立方体，以获取城市大概天际线轮廓。',
     img: 'assets/misc/dev6.jpg'
   },
   {
@@ -39,13 +39,13 @@ window.TC_DEVLOG = [
   {
     date: '9.30',
     title: 'T2M路网摄影',
-    text: '一个包含大量道路形态的截图，足以显示TheoCraft的最新开发进度。',
+    text: '一个包含大量道路形态的截图，足以显示 TheoCraft 的最新开发进度。',
     img: 'assets/misc/dev4.jpg'
   },
   {
     date: '9.29',
     title: '路网完美映射',
-    text: '经过巨量的解析debug之后，道路层级/桥墩桥梁/各类形态等以完美形态呈现在眼前！',
+    text: '经过巨量的解析 debug 之后，道路层级/桥墩桥梁/各类形态等以完美形态呈现在眼前！',
     img: 'assets/misc/dev3.jpg'
   },
   {
