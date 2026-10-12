@@ -236,16 +236,16 @@
        —— 视觉中心（TCP 主体字）深度 1.0 / 指数 1.0 跟手最紧；
        —— 底层元素（半透明青色底影）深度 0.22 / 指数 2.4，几乎不动，形成纵深
      · rAF + lerp 缓动，鼠标离开页头后各层回弹归位
-     · 触屏 / 减少动态 / fetch 失败（file:// 直开）时保留 <img> 静态显示
+     · pointermove(pointerType=mouse) 驱动：触屏笔记本也能用；触屏滑动不干扰
+     · 系统开启"减少动态"时不启用；fetch 失败（file:// 直开）保留 <img> 静态显示
   -------------------------------------------------------------------------------------- */
   (function initLogoParallax() {
     const holder = document.getElementById('logoParallax');
     if (!holder || !window.fetch || !window.DOMParser) return;
 
-    const fine = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
     const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-    if ((fine && !fine.matches) || (reduce && reduce.matches)) {
-      if (window.console && console.info) console.info('[TheoCraft] 当前环境无鼠标悬停或开启了减少动态，LOGO 视差未启用');
+    if (reduce && reduce.matches) {
+      if (window.console && console.info) console.info('[TheoCraft] 系统开启"减少动态"，LOGO 视差未启用');
       return;
     }
 
@@ -309,12 +309,17 @@
         function wake() { if (raf === null) raf = window.requestAnimationFrame(frame); }
 
         const hero = holder.closest('.page-hero') || document.body;
-        hero.addEventListener('mousemove', function (e) {
+        // 用 pointermove 替代 matchMedia 设备探测：只要有真鼠标在动就驱动视差，
+        // 触屏 / 笔尖事件按 pointerType 过滤，不再误拦触屏笔记本等环境
+        const onMove = function (e) {
+          if (e.pointerType && e.pointerType !== 'mouse') return;
           const r = hero.getBoundingClientRect();
           nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
           ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
           wake();
-        });
+        };
+        if (window.PointerEvent) hero.addEventListener('pointermove', onMove);
+        else hero.addEventListener('mousemove', onMove);
         hero.addEventListener('mouseleave', function () { nx = 0; ny = 0; wake(); });
       })
       .catch(function (err) {
