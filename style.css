@@ -32,21 +32,26 @@
   animation: heroFade 1s var(--ease) backwards;
 }
 
-/* --- 全屏背景图：与对比图交替播放 --- */
+/* --- 全屏背景图：多张与对比图交替播放 --- */
 .hero__bg {
   position: absolute; inset: 0; z-index: 0;
   overflow: hidden;
-  opacity: 0;
-  transition: opacity 1s var(--ease);
 }
 .hero__bg img {
+  position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 1s var(--ease), filter .42s var(--ease), transform .42s var(--ease);
 }
-/* 背景模式：显示背景图，隐藏对比组件和角标 */
-.hero__stage.is-bg .hero__bg { opacity: 1; }
-.hero__stage.is-bg .compare { opacity: 0; pointer-events: none; }
-.hero__stage.is-bg .tag { opacity: 0; }
+/* data-view 属性驱动三态切换：0=对比图 1=背景图一 2=背景图二 */
+.hero__stage[data-view="0"] .compare { opacity: 1; }
+.hero__stage[data-view="1"] .hero__bg img:nth-child(1) { opacity: 1; }
+.hero__stage[data-view="2"] .hero__bg img:nth-child(2) { opacity: 1; }
+.hero__stage[data-view="1"] .compare,
+.hero__stage[data-view="2"] .compare { opacity: 0; pointer-events: none; }
+.hero__stage[data-view="1"] .tag,
+.hero__stage[data-view="2"] .tag { opacity: 0; }
 
 /* --- 拖动对比组件：没有边框、没有圆角、没有阴影，直接铺满 --- */
 .compare {
@@ -62,7 +67,10 @@
   /* opacity 用于和背景图交替淡入淡出 */
   transition: filter .38s var(--ease), transform .5s var(--ease), opacity 1s var(--ease);
 }
-.hero.is-focus .compare { filter: blur(11px) saturate(.92); transform: scale(1.03); }
+.hero.is-focus .compare,
+.hero.is-focus .hero__bg img { filter: blur(11px) saturate(.92); }
+.hero.is-focus .compare,
+.hero.is-focus .hero__bg img { transform: scale(1.03); }
 
 .compare__layer {
   position: absolute; inset: 0;
@@ -146,13 +154,42 @@
 }
 .hero.is-focus .hero__scrim { opacity: 1; }
 
+/* --- 轮播圆点指示器：毛玻璃容器，与 hero__panel 风格统一 --- */
+.hero__dots {
+  position: absolute; bottom: 28px; left: 50%; z-index: 5;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 100px;
+  background: rgba(3, 18, 17, .46);
+  -webkit-backdrop-filter: blur(9px) saturate(1.1);
+  backdrop-filter: blur(9px) saturate(1.1);
+  box-shadow: 0 8px 24px rgba(2, 12, 11, .36);
+}
+.hero__dot {
+  width: 8px; height: 8px;
+  border: none; border-radius: 50%;
+  background: rgba(255, 255, 255, .32);
+  cursor: pointer;
+  transition: width .36s var(--ease), background .36s var(--ease);
+  flex-shrink: 0;
+}
+.hero__dot:hover { background: rgba(255, 255, 255, .6); }
+.hero__dot.is-active {
+  width: 22px;
+  border-radius: 100px;
+  background: var(--teal-300);
+}
+
 /* 文案层 */
 .hero__content {
   position: absolute; inset: 0; z-index: 4;
   display: flex; align-items: flex-end; justify-content: flex-start;
-  /* 下边距加大，把文案框整体往下压；上边距只保留导航栏高度即可 */
-  padding-block: var(--nav-h) clamp(26px, 4vh, 46px);
-  padding-inline: max(24px, calc((100% - var(--container)) / 2));
+  /* 靠视口左下角对齐：左边距与底边距共用 --hero-edge，
+     文案框到两条视口边的距离始终相等 */
+  --hero-edge: clamp(26px, 4vh, 46px);
+  padding: var(--nav-h) var(--hero-edge) var(--hero-edge);
   pointer-events: none;    /* 让空白区域仍然可以拖动对比图 */
 }
 
@@ -161,23 +198,60 @@
   pointer-events: auto;
   width: 100%;
   /* 620px 时卡片右边缘会越过画面中线、盖住中央滑块，收窄到 540px 避开；
-     两侧 padding 也一并从 30/26 收到 26/22，让卡片更紧凑 */
+     padding 交给内部页自己承担（见 .hero__page）——overflow:hidden 的裁剪
+     边界是 padding edge，若 padding 留在容器上，邻页会在这里露出小尾巴 */
   max-width: 540px;
-  padding: 22px 26px 20px;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 20px;
   background: rgba(3, 18, 17, .46);
   -webkit-backdrop-filter: blur(9px) saturate(1.1);
   backdrop-filter: blur(9px) saturate(1.1);
   box-shadow: 0 24px 64px rgba(2, 12, 11, .46);
+  overflow: hidden;
   transition: background-color .38s var(--ease), border-color .38s var(--ease),
               transform .38s var(--ease);
 }
 .hero.is-focus .hero__panel {
   background: rgba(3, 18, 17, .66);
   border-color: rgba(255, 255, 255, .26);
-  transform: translateY(-3px);
+  --panel-lift: -3px;
+  transform: translateY(var(--panel-lift));
 }
+
+/* --- 双页轨道：主文案 ↔ 开发动态，向右翻页 ---
+   轨道自身宽度必须是 200%：translateX(-50%) 的百分比相对轨道自身
+   border-box，若轨道只有 100% 宽（子项溢出），-50% 只会移动半页卡在中间 */
+.hero__pages {
+  display: flex;
+  width: 200%;
+  transition: transform .55s var(--ease);
+}
+.hero__page {
+  flex: 0 0 50%;
+  min-width: 0;
+  /* padding 放在页内而非容器上：容器 overflow:hidden 的裁剪边界是
+     padding edge，padding 留在容器上会让邻页在 padding 区露出小尾巴 */
+  padding: 22px 26px 20px;
+}
+.hero__panel.is-devlog .hero__pages { transform: translateX(-50%); }
+
+/* 切页时容器做小幅视差惯性偏移（动画结束后回弹归位）。
+   关键帧里保留 --panel-lift：is-focus 时容器有 translateY(-3px) 的悬浮位，
+   若动画直接写 transform:none 会把它抹掉，表现为点击瞬间下沉 3px 的沉降 */
+.hero__panel { --panel-lift: 0px; }
+@keyframes panelNudgeL {
+  0%   { transform: translateY(var(--panel-lift)); }
+  35%  { transform: translate(-9px, var(--panel-lift)); }
+  100% { transform: translateY(var(--panel-lift)); }
+}
+@keyframes panelNudgeR {
+  0%   { transform: translateY(var(--panel-lift)); }
+  35%  { transform: translate(9px, var(--panel-lift)); }
+  100% { transform: translateY(var(--panel-lift)); }
+}
+.hero__panel.nudge-left  { animation: panelNudgeL .5s var(--ease); }
+.hero__panel.nudge-right { animation: panelNudgeR .5s var(--ease); }
 
 .hero__eyebrow {
   display: inline-block;
@@ -226,14 +300,152 @@
   display: flex; flex-wrap: wrap; gap: 12px;
 }
 
-/* 文案逐行入场 */
-.hero__panel > * { animation: heroIn .85s var(--ease) backwards; }
-.hero__panel > *:nth-child(1) { animation-delay: .14s; }
-.hero__panel > *:nth-child(2) { animation-delay: .22s; }
-.hero__panel > *:nth-child(3) { animation-delay: .30s; }
-.hero__panel > *:nth-child(4) { animation-delay: .38s; }
-.hero__panel > *:nth-child(5) { animation-delay: .46s; }
-.hero__panel > *:nth-child(6) { animation-delay: .54s; }
+/* 文案逐行入场（作用于主文案页内部） */
+.hero__page--main > * { animation: heroIn .85s var(--ease) backwards; }
+
+/* --- 开发动态页：图上文下，右上角日期时间轴，底部左右切换器 --- */
+.devlog { display: flex; flex-direction: column; height: 100%; }
+.devlog__head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.devlog__label {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--teal-200);
+}
+
+.devlog__viewport { overflow: hidden; }
+.devlog__track { display: flex; transition: transform .5s var(--ease); }
+.devlog__slide { flex: 0 0 100%; min-width: 0; }
+
+/* 图示：容器在上 */
+.devlog__media {
+  position: relative;
+  height: clamp(130px, 30vw, 170px);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background:
+    linear-gradient(135deg, rgba(20, 167, 148, .18), rgba(108, 187, 60, .12)),
+    rgba(255, 255, 255, .05);
+}
+.devlog__media img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 文字：标题 + 正文（在图下方） */
+.devlog__body { margin-top: 12px; }
+.devlog__title {
+  margin: 0;
+  font-size: 16px; font-weight: 700; line-height: 1.35;
+  color: #f4fbfa;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.devlog__text {
+  margin: 6px 0 0;
+  font-size: 13px; line-height: 1.65;
+  color: rgba(255, 255, 255, .72);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 底部切换器：左下角上一条、右下角下一条，中间计数 */
+.devlog__nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px;
+}
+.devlog__btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .07);
+  color: rgba(255, 255, 255, .82);
+  cursor: pointer;
+  transition: background .3s var(--ease), border-color .3s var(--ease), transform .3s var(--ease);
+}
+.devlog__btn:hover { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .3); }
+.devlog__btn:active { transform: scale(.92); }
+.devlog__btn:disabled {
+  opacity: .28;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* --- 线性时间轴：轨道线 + 日期胶囊，切换时非线性缓动平移 --- */
+.devlog__timeline {
+  flex: 1;
+  position: relative;
+  height: 28px;
+  overflow: hidden;
+  margin: 0 10px;
+}
+/* 底部轨道线 */
+.devlog__tl-line {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, .12);
+  transform: translateY(-50%);
+}
+/* 胶囊轨道：非线性 overshoot 缓动，切换时旧胶囊向正方向滑出视口消失 */
+.devlog__tl-track {
+  position: absolute;
+  top: 50%; left: 0;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 50%;
+  transition: transform .62s cubic-bezier(.34, 1.56, .64, 1);
+}
+.devlog__tcap {
+  flex-shrink: 0;
+  padding: 3px 12px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 100px;
+  /* 不透明实底：切换平移时完全遮住下方时间轴线 */
+  background: #0c2a26;
+  color: rgba(255, 255, 255, .38);
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  white-space: nowrap;
+  transition: background .4s var(--ease), border-color .4s var(--ease),
+              color .4s var(--ease), transform .4s var(--ease);
+}
+.devlog__tcap.is-active {
+  background: #0f4a42;
+  border-color: rgba(155, 227, 217, .4);
+  color: var(--teal-200);
+  transform: scale(1.12);
+}
+
+/* 双 logo + 转换箭头：亮色系，深色玻璃底上清晰可读 */
+.hero__logos {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, .82);
+  margin-bottom: 4px;
+}
+.hero__logo-icon {
+  height: 34px;
+  width: auto;
+  flex-shrink: 0;
+}
+/* TheoTown SVG viewBox 内部左侧有约 11% 留白，负 margin 让视觉左缘与标题文字对齐 */
+.hero__logo-icon:first-child {
+  margin-left: -5px;
+}
+.hero__page--main > *:nth-child(1) { animation-delay: .14s; }
+.hero__page--main > *:nth-child(2) { animation-delay: .22s; }
+.hero__page--main > *:nth-child(3) { animation-delay: .30s; }
+.hero__page--main > *:nth-child(4) { animation-delay: .38s; }
+.hero__page--main > *:nth-child(5) { animation-delay: .46s; }
+.hero__page--main > *:nth-child(6) { animation-delay: .54s; }
 
 /* --------------------------------------------------------------------------
    2. 转化实例：横向滚动列表
@@ -442,7 +654,7 @@
    6. 首页响应式
    -------------------------------------------------------------------------- */
 @media (max-width: 860px) {
-  .hero__content { padding-inline: 20px; }
+  /* 平板：文案框拉宽铺满，但左边距沿用基础规则（= 底边距），不单独覆盖 */
   .hero__panel { max-width: none; }
   .gallery__nav { align-self: flex-end; }
 }
@@ -453,13 +665,20 @@
     padding-inline: 18px;
     padding-block: calc(var(--nav-h) + 16px) 22px;
   }
-  .hero__panel { padding: 20px 20px 18px; border-radius: 16px; }
+  .hero__panel { border-radius: 16px; }
+  .hero__page { padding: 20px 20px 18px; }
   .hero__eyebrow { margin-bottom: 10px; font-size: 10px; }
   .hero__title { font-size: clamp(28px, 9vw, 40px); }
+  .hero__logo-icon { height: 26px; }
   .hero__en { letter-spacing: .22em; }
   .hero__sub { margin-top: 12px; font-size: 14px; }
   .hero__actions { margin-top: 18px; flex-direction: column; align-items: stretch; }
   .hero__actions .btn { width: 100%; }
+  .hero__dots { bottom: 18px; padding: 7px 12px; gap: 7px; }
+  /* 触屏设备：滑动切换动态，隐藏桌面专属按钮 */
+  .hero__devlog-btn { display: none; }
+  .devlog__media { height: clamp(110px, 34vw, 140px); }
+  .devlog__title { font-size: 15px; }
 
   .tag { top: calc(var(--nav-h) + 12px); left: 18px; }
   .tag--after { left: auto; right: 18px; }
@@ -480,7 +699,7 @@
 
 /* 矮屏笔记本 / 横屏手机：压缩文案区，保证按钮不被挤出首屏 */
 @media (max-height: 700px) and (min-width: 861px) {
-  .hero__panel { padding: 20px 26px 18px; }
+  .hero__page { padding: 20px 26px 18px; }
   .hero__title { font-size: clamp(28px, 3.6vw, 44px); }
   .hero__sub { margin-top: 12px; font-size: 14.5px; }
   .hero__actions { margin-top: 18px; }
@@ -493,5 +712,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero.is-focus .compare { transform: none; }
+  .hero.is-focus .compare,
+  .hero.is-focus .hero__bg img { transform: none; }
 }

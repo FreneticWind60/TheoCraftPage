@@ -24,8 +24,8 @@ const CONVERSIONS = [
     scale: '中等比例',              // 规模
     height: 'y 62–78',                // 建筑高度范围
     note: '海岸做了平滑处理，高度坡面按原世界逐格对齐。',
-    before: 'assets/before-1.webp',    // TheoTown 原图
-    after: 'assets/after-1.webp'       // Minecraft 效果图
+    before: 'assets/webp/before-1.webp',    // TheoTown 原图
+    after: 'assets/webp/after-1.webp'       // Minecraft 效果图
   },
   {
     city: '旧城北区',
@@ -33,8 +33,8 @@ const CONVERSIONS = [
     scale: '中等比例',
     height: 'y 128 单层',
     note: '软件道路映射完美，高架拐角岔口等完整还原。',
-    before: 'assets/before-2.webp',
-    after: 'assets/after-2.webp'
+    before: 'assets/webp/before-2.webp',
+    after: 'assets/webp/after-2.webp'
   },
   {
     city: '中央CBD',
@@ -42,8 +42,8 @@ const CONVERSIONS = [
     scale: '中等比例',
     height: 'y 62–74',
     note: '大师级城建，巨量细节还原中央商务区',
-    before: 'assets/before-3.webp',
-    after: 'assets/after-3.webp'
+    before: 'assets/webp/before-3.webp',
+    after: 'assets/webp/after-3.webp'
   },
   {
     city: '市郊农区',
@@ -51,8 +51,8 @@ const CONVERSIONS = [
     scale: '中等比例',
     height: 'y 63–70',
     note: '还原市郊农区的详细结构',
-    before: 'assets/before-4.webp',
-    after: 'assets/after-4.webp'
+    before: 'assets/webp/before-4.webp',
+    after: 'assets/webp/after-4.webp'
   },
   {
     city: '山下工业区',
@@ -60,8 +60,8 @@ const CONVERSIONS = [
     scale: '小比例',
     height: 'y 96 单层',
     note: '小尺寸试水，一分钟出稿，先看效果再决定做大的。',
-    before: 'assets/before-5.webp',
-    after: 'assets/after-5.webp'
+    before: 'assets/webp/before-5.webp',
+    after: 'assets/webp/after-5.webp'
   }
 ];
 
@@ -210,35 +210,53 @@ function initHeroPanel() {
 
   // 键盘 Tab 进框内的按钮 / 链接时同样模糊底图
   panel.addEventListener('focusin', function () { setFocus(true); });
-  panel.addEventListener('focusout', function (e) {
-    if (!panel.contains(e.relatedTarget)) setFocus(false);
+  panel.addEventListener('focusout', function () {
+    // 末条动态时 nextBtn 被 disabled，浏览器会把焦点移出面板并触发本事件，
+    // 但用户鼠标仍悬停在框内，不应退出聚焦态 —— 延迟一拍后用 :hover 复核
+    window.setTimeout(function () {
+      if (panel.contains(document.activeElement) || panel.matches(':hover')) return;
+      setFocus(false);
+    }, 0);
   });
 }
 
 /* --------------------------------------------------------------------------
-   2.3 首屏交替：对比图 ↔ 全屏背景图
-        每 5 秒自动切换一次；用户拖动对比轴时暂停，松手后恢复计时。
-        切换通过给 .hero__stage 加 .is-bg 类完成，CSS 负责淡入淡出。
+   2.3 首屏轮播：对比图 ↔ 背景图一 ↔ 背景图二
+        每 5 秒自动切到下一画面；用户拖动对比轴时暂停，松手后恢复计时。
+        切换通过给 .hero__stage 写 data-view（0/1/2）完成，CSS 负责淡入淡出；
+        底部圆点指示器与画面双向同步，点击圆点直接跳转。
    -------------------------------------------------------------------------- */
 function initHeroAlternation() {
   var stage = document.querySelector('.hero__stage');
   var compare = document.getElementById('compare');
+  var dotsBox = document.getElementById('heroDots');
   if (!stage || !compare) return;
+
+  var TOTAL = dotsBox ? dotsBox.querySelectorAll('.hero__dot').length : 0;
+  if (TOTAL < 2) TOTAL = Math.max(TOTAL, 3);   // 圆点缺失时仍按三态轮播
 
   var INTERVAL = 5000;        // 5 秒切换
   var timerId = null;
-  var isBg = false;           // 当前是否显示背景图
+  var view = 0;               // 当前画面：0=对比图 1=背景图一 2=背景图二
   var userInteracting = false; // 用户正在拖动对比轴
 
-  function toggle() {
-    isBg = !isBg;
-    stage.classList.toggle('is-bg', isBg);
+  function apply(next) {
+    view = (next + TOTAL) % TOTAL;
+    stage.setAttribute('data-view', String(view));
+    if (dotsBox) {
+      var dots = dotsBox.querySelectorAll('.hero__dot');
+      for (var i = 0; i < dots.length; i++) {
+        var on = i === view;
+        dots[i].classList.toggle('is-active', on);
+        dots[i].setAttribute('aria-selected', on ? 'true' : 'false');
+      }
+    }
   }
 
   function start() {
     stop();
     timerId = window.setInterval(function () {
-      if (!userInteracting) toggle();
+      if (!userInteracting) apply(view + 1);
     }, INTERVAL);
   }
 
@@ -247,6 +265,16 @@ function initHeroAlternation() {
       window.clearInterval(timerId);
       timerId = null;
     }
+  }
+
+  // 点击圆点 → 跳转到对应画面并重新计时
+  if (dotsBox) {
+    dotsBox.addEventListener('click', function (e) {
+      var dot = e.target.closest ? e.target.closest('.hero__dot') : null;
+      if (!dot) return;
+      apply(parseInt(dot.getAttribute('data-view'), 10) || 0);
+      start();               // 手动跳转后从 5 秒重新倒数
+    });
   }
 
   // 拖动开始 → 暂停计时
@@ -270,11 +298,185 @@ function initHeroAlternation() {
     if (document.hidden) stop(); else start();
   });
 
+  apply(0);
   start();
 }
 
 /* --------------------------------------------------------------------------
-   2.4 转化实例：渲染卡片 + 左右箭头滚动
+   2.4 开发动态图文：文案层向右翻页
+        数据来自 assets/js/devlog.js（window.TC_DEVLOG，增改条目只动那个文件）。
+        桌面端点【查看动态 >>】进入；触屏左右滑动切换。
+        不做循环：首条再向左 = 返回主文案（prev 兼任返回），末条 next 置灰。
+        切换动画发生在容器内部（轨道位移），容器本体只做小幅视差惯性偏移。
+   -------------------------------------------------------------------------- */
+function initHeroDevlog() {
+  var panel = document.getElementById('heroPanel');
+  var devlogPage = document.getElementById('heroDevlog');
+  var openBtn = document.getElementById('heroDevlogBtn');
+  if (!panel || !devlogPage || !openBtn) return;
+
+  var data = window.TC_DEVLOG;
+  if (!data || !data.length) {          // 无动态：隐藏入口，主文案保持原样
+    openBtn.style.display = 'none';
+    return;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // --- 渲染动态页：内部滑动轨道（图上文下）+ 底部时间轴 + 左右切换器 ---
+  var slides = data.map(function (item) {
+    var img = item.img
+      ? '<img src="' + esc(item.img) + '" alt="" draggable="false" loading="lazy">'
+      : '';
+    return '' +
+      '<article class="devlog__slide">' +
+        '<div class="devlog__media">' + img + '</div>' +
+        '<div class="devlog__body">' +
+          '<h3 class="devlog__title">' + esc(item.title) + '</h3>' +
+          '<p class="devlog__text">' + esc(item.text) + '</p>' +
+        '</div>' +
+      '</article>';
+  }).join('');
+
+  // 时间轴胶囊：每条动态一个，渲染 date 数据
+  var capsules = data.map(function (item, i) {
+    return '<span class="devlog__tcap' + (i === 0 ? ' is-active' : '') +
+      '" data-i="' + i + '">' + esc(item.date) + '</span>';
+  }).join('');
+
+  devlogPage.innerHTML = '' +
+    '<div class="devlog">' +
+      '<div class="devlog__viewport">' +
+        '<div class="devlog__track" id="devlogTrack">' + slides + '</div>' +
+      '</div>' +
+      '<div class="devlog__nav">' +
+        '<button class="devlog__btn" type="button" data-act="prev" aria-label="上一条动态（第一条时返回主文案）">' +
+          '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>' +
+        '</button>' +
+        '<div class="devlog__timeline" id="devlogTimeline">' +
+          '<div class="devlog__tl-line" aria-hidden="true"></div>' +
+          '<div class="devlog__tl-track" id="devlogTlTrack">' + capsules + '</div>' +
+        '</div>' +
+        '<button class="devlog__btn" type="button" data-act="next" aria-label="下一条动态">' +
+          '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+
+  var track = document.getElementById('devlogTrack');
+  var tlTrack = document.getElementById('devlogTlTrack');
+  var timeline = document.getElementById('devlogTimeline');
+  var nextBtn = devlogPage.querySelector('[data-act="next"]');
+  var idx = 0;
+
+  // 时间轴居中：测量目标胶囊 offsetLeft，平移使其居中于视口。
+  // 注意必须保留 translateY(-50%)：内联 transform 会整体覆盖 CSS 值，
+  // 若只写 translateX 会丢掉垂直居中位，导致胶囊沉到时间轴线下方
+  function centerCapsule() {
+    var caps = tlTrack.querySelectorAll('.devlog__tcap');
+    var cap = caps[idx];
+    if (!cap || !timeline) return;
+    var tlW = timeline.offsetWidth;
+    var capCenter = cap.offsetLeft + cap.offsetWidth / 2;
+    tlTrack.style.transform = 'translate(' + (tlW / 2 - capCenter) + 'px, -50%)';
+  }
+
+  function setSlide(n) {
+    // 不循环：夹在 [0, len-1]
+    idx = Math.max(0, Math.min(data.length - 1, n));
+    track.style.transform = 'translateX(' + (-idx * 100) + '%)';
+    // 时间轴胶囊高亮切换
+    var caps = tlTrack.querySelectorAll('.devlog__tcap');
+    for (var i = 0; i < caps.length; i++) {
+      caps[i].classList.toggle('is-active', i === idx);
+    }
+    centerCapsule();
+    // 末条时「下一条」置灰；「上一条」永远可点（首条时承担返回职责）
+    nextBtn.disabled = idx >= data.length - 1;
+  }
+
+  // --- 容器视差惯性：与轨道移动方向同向微偏，动画结束后回弹归位 ---
+  function nudge(dir) {
+    panel.classList.remove('nudge-left', 'nudge-right');
+    void panel.offsetWidth;               // 强制重排，动画可重复触发
+    panel.classList.add(dir > 0 ? 'nudge-left' : 'nudge-right');
+  }
+
+  function openDevlog() {
+    if (panel.classList.contains('is-devlog')) return;
+    nudge(1);
+    panel.classList.add('is-devlog');
+  }
+  function closeDevlog() {
+    if (!panel.classList.contains('is-devlog')) return;
+    nudge(-1);
+    panel.classList.remove('is-devlog');
+  }
+
+  openBtn.addEventListener('click', openDevlog);
+
+  devlogPage.addEventListener('click', function (e) {
+    // 时间轴胶囊点击 → 跳转到对应动态
+    var cap = e.target.closest ? e.target.closest('.devlog__tcap') : null;
+    if (cap) {
+      var ti = parseInt(cap.getAttribute('data-i'), 10);
+      if (!isNaN(ti) && ti !== idx) {
+        nudge(ti > idx ? 1 : -1);
+        setSlide(ti);
+      }
+      return;
+    }
+    var btn = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!btn) return;
+    var act = btn.getAttribute('data-act');
+    if (act === 'prev') {
+      if (idx === 0) closeDevlog();       // 首条再向左 → 返回主文案
+      else { nudge(-1); setSlide(idx - 1); }
+    } else if (act === 'next' && idx < data.length - 1) {
+      nudge(1);
+      setSlide(idx + 1);
+    }
+  });
+
+  // --- 触屏滑动：主文案左滑进入动态；动态页内左右滑切条目，首条右滑返回 ---
+  var sx = 0, sy = 0, onTouch = false;
+  panel.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { onTouch = false; return; }
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    onTouch = true;
+  }, { passive: true });
+
+  panel.addEventListener('touchend', function (e) {
+    if (!onTouch) return;
+    onTouch = false;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - sx, dy = t.clientY - sy;
+    // 水平滑动意图不明显（距离短 / 纵向为主）则不干预，避免影响页面滚动
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    var onDevlog = panel.classList.contains('is-devlog');
+    if (!onDevlog && dx < 0) {
+      openDevlog();
+    } else if (onDevlog && dx > 0) {
+      if (idx === 0) closeDevlog();       // 首条右滑 → 返回主文案
+      else { nudge(-1); setSlide(idx - 1); }
+    } else if (onDevlog && dx < 0 && idx < data.length - 1) {  // 末条左滑不动
+      nudge(1); setSlide(idx + 1);
+    }
+  }, { passive: true });
+
+  setSlide(0);                            // 初始渲染：同步末条按钮置灰态
+
+  // 窗口尺寸变化时重新居中活跃胶囊
+  window.addEventListener('resize', centerCapsule);
+}
+
+/* --------------------------------------------------------------------------
+   2.5 转化实例：渲染卡片 + 左右箭头滚动
    -------------------------------------------------------------------------- */
 function initGallery() {
   const viewport = document.getElementById('galleryTrack');
@@ -482,6 +684,7 @@ function initReviews() {
   initCompare,
   initHeroPanel,
   initHeroAlternation,
+  initHeroDevlog,
   initGallery,
   initReviews
 ].forEach(function (init) {

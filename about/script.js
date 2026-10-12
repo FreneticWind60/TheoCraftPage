@@ -22,7 +22,7 @@
     {
       name: 'Dozener',
       role: '转换器核心开发&项目总监',
-      avatar: '../assets/avater1.webp',
+      avatar: '../assets/webp/avater1.webp',
       color: '#14a794',
       bio: [
         '创意融合程序设计爱好者，初级建筑党，擅长美工设计，福瑞控（毛茸茸）',
@@ -32,23 +32,23 @@
     {
       name: 'Official Bean',
       role: '建筑复刻总监',
-      avatar: '../assets/avater2.webp',
+      avatar: '../assets/webp/avater2.webp',
       color: '#4c9a2a',
       bio: [
         '资深大师级MC建筑肝帝一个，GNwork成员，手握多座MC城市原创/复刻项目',
         '为TheoCraft贡献大量原创复刻建筑资源，同时参与建筑复刻的多层面指导',
-        '“建筑复刻方面，我们杜绝AI“'
+        '<em>“建筑复刻方面，我们杜绝AI“</em>'
       ]
     },
     {
       name: '疯潮Fren',
       role: 'UI 设计总监',
-      avatar: '../assets/avater3.webp',
+      avatar: '../assets/webp/avater3.webp',
       color: '#0f6259',
       bio: [
         'Dingdua大学的学堂路区神（雾），MC复刻西奥建筑开创者，擅长前后端全栈开发（熟练使用AI偷懒）',
         'TheoCraft官网前端设计与维护，浅层技术支持等',
-        '“←不不不让我拥抱AI，爱让记忆更珍贵（AI makes RAM more expensive）”'
+        '<em>“←不不不让我拥抱AI，爱让记忆更珍贵</br>（AI makes RAM more expensive）”</em>'
       ]
     }
   ];
@@ -59,10 +59,10 @@
      · desc   → 一句简略介绍
    */
   const CONTRIBUTORS = [
-    { id: 'DICECAN', desc: '姊妹项目Chunkoid现维护者，常参与TC的讨论和技术支持', avatar: '../assets/avater4.webp' },
-    { id: '零号小明', desc: '提供了一个大型城市存档，对于项目早期解析有很大帮助', avatar: '../assets/avater5.webp' },
-    { id: 'corax', desc: '西奥插件制作爱好者，在TCP插适平台中提供帮助和支持', avatar: '../assets/avater6.webp' },
-    { id: 'Ryan Steven', desc: '作者的好朋友~', avatar: '../assets/avater7.webp' }
+    { id: 'DICECAN', desc: '姊妹项目Chunkoid现维护者，常参与TC的讨论和技术支持', avatar: '../assets/webp/avater4.webp' },
+    { id: '零号小明', desc: '提供了一个大型城市存档，对于项目早期解析有很大帮助', avatar: '../assets/webp/avater5.webp' },
+    { id: 'corax', desc: '西奥插件制作爱好者，在TCP插适平台中提供帮助和支持', avatar: '../assets/webp/avater6.webp' },
+    { id: 'Ryan Steven', desc: '作者的好朋友~', avatar: '../assets/webp/avater7.webp' }
   ];
 
   /* ==========================================================================
