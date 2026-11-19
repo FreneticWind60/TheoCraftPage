@@ -6,6 +6,7 @@
      · initNav     汉堡菜单开合 + 导航栏透明→实底（有首屏大图才透明）
      · initYear    自动填充页脚年份
      · initReveal  滚动入场动画（各页脚本渲染完动态节点后再调用）
+     · initCopy    一键复制（带 [data-copy] 的按钮，用于 QQ 群号等）
    页面脚本（各目录下的 script.js）在 defer 顺序中排在本文件之后，
    所以可以直接使用 window.TC。
    纯原生 JS，零框架、零外部请求。
@@ -175,17 +176,78 @@
     Array.prototype.forEach.call(items, function (el) { io.observe(el); });
   }
 
+  /* ------------------------------------------------------------------------
+     5) 一键复制（官方 QQ 群号等）
+        带 [data-copy] 的按钮：点击复制其值，按钮文案短暂变成「已复制」。
+        · data-copy      要复制的文本
+        · data-copy-done 复制成功后的提示文案（默认「已复制」）
+        navigator.clipboard 在 file:// 或非安全上下文不可用，退回 execCommand。
+     ------------------------------------------------------------------------ */
+  function initCopy() {
+    const buttons = Array.prototype.slice.call(document.querySelectorAll('[data-copy]'));
+    if (!buttons.length) return;
+
+    function legacyCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    function write(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () {
+          return true;
+        }, function () {
+          return legacyCopy(text);
+        });
+      }
+      return Promise.resolve(legacyCopy(text));
+    }
+
+    buttons.forEach(function (btn) {
+      const label = btn.querySelector('.js-copy-text') || btn;
+      const origin = label.textContent;
+      let timer = null;
+
+      btn.addEventListener('click', function () {
+        const text = btn.getAttribute('data-copy');
+        if (!text) return;
+
+        write(text).then(function (ok) {
+          if (!ok) return;
+          label.textContent = btn.getAttribute('data-copy-done') || '已复制 ✓';
+          btn.classList.add('is-copied');
+          window.clearTimeout(timer);
+          timer = window.setTimeout(function () {
+            label.textContent = origin;
+            btn.classList.remove('is-copied');
+          }, 2000);
+        });
+      });
+    });
+  }
+
   /* 对外暴露 */
   window.TC = {
     initTheme: initTheme,
     initNav: initNav,
     initYear: initYear,
-    initReveal: initReveal
+    initReveal: initReveal,
+    initCopy: initCopy
   };
 
   /* 基础模块随脚本立刻启动（script 带 defer，执行到这里 DOM 已就绪）。
      initReveal 不在其中：要等各页脚本渲染完动态内容后再手动调用。 */
-  [initTheme, initNav, initYear].forEach(function (init) {
+  [initTheme, initNav, initYear, initCopy].forEach(function (init) {
     try {
       init();
     } catch (err) {

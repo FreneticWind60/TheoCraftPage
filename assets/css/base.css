@@ -285,6 +285,15 @@ b, strong { font-weight: 700; }
 }
 .btn--outline:hover { border-color: var(--teal-400); color: var(--accent-text); }
 
+/* 复制成功反馈：短暂变成草绿（配合 base.js 的 initCopy） */
+.btn.is-copied,
+.btn.is-copied:hover {
+  background: var(--grass-600);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 0 #3a751f;
+}
+
 /* 禁用态：不可交互、整体置灰（下载通道未开放时用） */
 .btn--disabled,
 .btn:disabled {

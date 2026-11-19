@@ -4,6 +4,7 @@
    共享基础（令牌 / 导航 / 按钮 / 步骤 / CTA / 页脚 / 内页页头）在
    ../assets/css/base.css，这里只写下载页独有的模块：
      · 下载通道卡片（未开放时置灰禁用）
+     · 开发完成前的代转换服务卡片
      · 软件详细信息
      · 开发中弹窗
    ========================================================================== */
@@ -58,7 +59,63 @@ html[data-theme="dark"] .dl-card__note { color: #f0a05a; }
 }
 
 /* --------------------------------------------------------------------------
-   2. 软件详细信息
+   2. 开发完成前的代转换服务卡片
+   -------------------------------------------------------------------------- */
+.dl-service {
+  grid-column: 1 / -1;   /* 占满下载通道的整行 */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 240px;
+  align-items: center;
+  gap: 26px;
+  padding: 28px 30px;
+  background: var(--surface);
+  border: 1px solid var(--grass-soft-brd);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-sm);
+  background-image: linear-gradient(135deg, var(--grass-soft-bg) 0, transparent 46%);
+  overflow: hidden;
+}
+
+.dl-service__icon {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 60px; height: 60px;
+  border-radius: var(--r-md);
+  background: var(--grass-soft-bg);
+  border: 1px solid var(--grass-soft-brd);
+  color: var(--grass-soft-fg);
+}
+
+.dl-service__eyebrow {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid var(--grass-soft-brd);
+  border-radius: var(--r-xs);
+  background: var(--grass-soft-bg);
+  color: var(--grass-soft-fg);
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+}
+.dl-service__title { margin-top: 10px; font-size: clamp(19px, 2.2vw, 23px); font-weight: 800; letter-spacing: -.01em; text-wrap: balance; }
+.dl-service__desc { margin-top: 8px; max-width: 68ch; font-size: 14.5px; line-height: 1.75; color: var(--muted); }
+
+.dl-service__group { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-top: 14px; }
+.dl-service__label {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+.dl-service__number {
+  font-family: var(--font-mono);
+  font-size: 20px; font-weight: 800; letter-spacing: .08em;
+  color: var(--ink);
+  user-select: all;
+}
+
+.dl-service__actions { display: grid; gap: 10px; }
+
+/* --------------------------------------------------------------------------
+   3. 软件详细信息
    -------------------------------------------------------------------------- */
 .info-grid {
   display: grid;
@@ -90,7 +147,7 @@ html[data-theme="dark"] .dl-card__note { color: #f0a05a; }
 }
 
 /* --------------------------------------------------------------------------
-   3. 开发中弹窗
+   4. 开发中弹窗
    -------------------------------------------------------------------------- */
 .modal {
   position: fixed; inset: 0; z-index: 150;
@@ -150,10 +207,12 @@ html[data-theme="dark"] .dl-card__note { color: #f0a05a; }
 body.is-locked { overflow: hidden; }
 
 /* --------------------------------------------------------------------------
-   4. 响应式
+   5. 响应式
    -------------------------------------------------------------------------- */
 @media (max-width: 860px) {
   .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dl-service { grid-template-columns: 60px minmax(0, 1fr); align-items: start; gap: 16px 16px; }
+  .dl-service__actions { grid-column: 1 / -1; max-width: none; }
 }
 @media (max-width: 620px) {
   .dl-channels { grid-template-columns: 1fr; }
